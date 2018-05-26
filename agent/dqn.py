@@ -1,4 +1,3 @@
-import pickle
 from random import random, randint
 
 import numpy as np
@@ -100,18 +99,12 @@ class DQNAgent:
 
         return losses
 
-    def save(self, path):
-        torch.save(self.q_net.state_dict(), path + "_weights")
+    def state(self):
+        return {
+            "model": self.q_net.state_dict(),
+            "eps": self.eps_schedule
+        }
 
-        with open(path + '_params', 'wb') as output:
-            params = {
-                "eps_schedule": self.eps_schedule
-            }
-
-            pickle.dump(params, output)
-
-    def load(self, path):
-        self.q_net.load_state_dict(torch.load(path + "_weights"))
-
-        with open(path + '_params', 'rb') as input:
-            self.eps_schedule = pickle.load(input)["eps_schedule"]
+    def load(self, state):
+        self.q_net.load_state_dict(state["model"])
+        self.eps_schedule = state["eps"]

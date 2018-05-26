@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch.autograd import Variable
 
@@ -13,6 +14,16 @@ def var(x, cuda=True):
 
 def np_var(x, cuda=True):
     return var(torch.from_numpy(x), cuda)
+
+
+def rgb_frame(frame):
+    im = np.zeros_like(frame)
+
+    im[:, :, 2] = frame[:, :, 0]
+    im[:, :, 1] = frame[:, :, 1]
+    im[:, :, 0] = frame[:, :, 2]
+
+    return np.copy(im)
 
 
 class ParamSchedule:
@@ -50,3 +61,12 @@ class LinearSchedule:
             self._val = max(self._min, self._start_val - ((t - self._start) / self._max_iters))
 
     def val(self, *args): return self._val
+
+
+class ComplexSchedule:
+    def __init__(self, **schedules):
+        self.schedules = schedules
+
+    def step(self, t):
+        for sched in self.schedules:
+            sched.step(t)

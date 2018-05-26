@@ -1,4 +1,3 @@
-import pickle
 import time
 from collections import deque
 
@@ -6,58 +5,39 @@ import numpy as np
 from tqdm import trange
 
 from env.util import zero_frame, preprocess_frame, LazyFrames
+from util import rgb_frame
 
 
 class TrajectoryGenerator:
-    def __init__(self, map_name, env, n_epochs, epoch_len, agent, actions,
-                 frame_skip=4, frames_per_state=4, state_dim=(3, 60, 108), save_interval=None, out_name=None,
-                 param_schedules=None, monitor=None, next_epoch_callback=None, shape_reward_fn=None):
+    def __init__(self, env, n_epochs, epoch_len, agent, actions,
+                 frame_skip=4, frames_per_state=4, state_dim=(3, 60, 108),
+                 param_schedules=None, monitors=None, shape_reward_fn=None):
 
-        self.map_name = map_name
         self.env = env
         self.epochs = n_epochs
         self.epoch_len = epoch_len
         self.agent = agent
         self.param_schedules = param_schedules or []
-        self.monitor = monitor
-        self.epoch_cb = next_epoch_callback
+        self.monitors = monitors
         self.shape_reward_fn = shape_reward_fn
         self.frames_per_state = frames_per_state
         self.frame_skip = frame_skip
         self.state_dim = state_dim
         self.actions = actions
-        self.save_interval = save_interval
-        self.out_name = out_name
 
     def _frame_buffer(self):
         return deque([zero_frame(self.state_dim)
                       for _ in range(self.frames_per_state)], maxlen=self.frames_per_state)
 
-    def _save(self, t):
-        if not self.out_name: return
-
-        params = {
-            "map_name": self.map_name,
-            "actions": self.actions,
-            "frame_skip": self.frame_skip,
-            "frames_per_state": self.frames_per_state,
-            "state_dim": self.state_dim,
-            "monitor": self.monitor
-        }
-
-        with open("{0}_{1}_params".format(self.out_name, t), 'wb') as output:
-            pickle.dump(params, output)
-
-        self.agent.save("{0}_{1}_model".format(self.out_name, t))
-
     def run(self):
         self.env.new_episode()
+        epoch_params = {}
 
         for epoch in range(self.epochs):
             last_states = self._frame_buffer()
 
-            if self.epoch_cb:
-                self.epoch_cb(epoch)
+            for monitor in self.monitors:
+                monitor.pre_epoch(epoch)
 
             for schedule in self.param_schedules:
                 schedule.step()
@@ -97,8 +77,8 @@ class TrajectoryGenerator:
                     last_states = self._frame_buffer()
                     score = self.env.get_total_reward()
 
-                    if self.monitor:
-                        self.monitor.game_finished(score)
+                    for monitor in self.monitors:
+                        monitor.post_game(score)
 
                     self.env.new_episode()
                     state_vars = self.env.get_state().game_variables
@@ -108,33 +88,31 @@ class TrajectoryGenerator:
                     last_states.append(screen)
 
             loss = self.agent.epoch_finished()
+            epoch_params = {
+                "loss": loss,
+                "schedules": self.param_schedules
+            }
 
-            if self.monitor:
-                self.monitor.epoch_finished(epoch, loss, self.param_schedules)
+            for monitor in self.monitors:
+                monitor.post_epoch(epoch, epoch_params)
 
-            if self.save_interval and epoch % self.save_interval == 0:
-                self._save(epoch + 1)
+        for monitor in self.monitors:
+            monitor.done(epoch_params)
 
-        self._save("final")
         self.env.close()
 
-    def load(self, path):
-        with open(path + '_params', 'rb') as input:
-            params = pickle.load(input)
-
-        for key, val in params.items():
-            setattr(self, key, val)
-
-        self.agent.load(path + "_model")
-
-    def test(self, n_games):
+    def test(self, n_games, record=False):
         scores = []
+        frames = []
 
         for t in trange(n_games, leave=False):
             self.env.new_episode()
             last_states = self._frame_buffer()
 
             while True:
+                if record:
+                    frames.append(rgb_frame(self.env.get_state().screen_buffer))
+
                 screen = preprocess_frame(self.env.get_state().screen_buffer, self.state_dim)
                 last_states.append(screen)
 
@@ -148,4 +126,4 @@ class TrajectoryGenerator:
                     break
 
         scores = np.array(scores)
-        return scores.mean(), scores.std(), scores.max(), scores.min()
+        return scores.mean(), scores.std(), scores.max(), scores.min(), frames

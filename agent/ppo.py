@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 from torch.distributions import Categorical
 
 from env.util import stack_frames
@@ -8,7 +8,7 @@ from util import np_var, var
 
 class PPOAgent:
     def __init__(self, policy, optim, eps_schedule, cuda=False, opt_epochs=4, gamma=0.99, lam=0.95,
-                 entropy_coeff=0.01, value_coeff=1.0, n_timesteps=1024, n_batches=32):
+                 entropy_coeff=0.01, value_coeff=1.0, n_timesteps=1024, batch_size=32):
 
         self.cuda = cuda
         self.optim = optim
@@ -20,8 +20,8 @@ class PPOAgent:
         self.entropy_coeff = entropy_coeff
         self.value_coeff = value_coeff
         self.n_timesteps = n_timesteps
-        self.n_batches = n_batches
-        self.batch_size = n_timesteps // n_batches
+        self.n_batches = n_timesteps // batch_size
+        self.batch_size = batch_size
 
         if cuda:
             self.policy.cuda()
@@ -108,8 +108,8 @@ class PPOAgent:
         self._reset_timesteps()
         return L.data.cpu()[0]
 
-    def save(self, path):
-        torch.save(self.policy.state_dict(), path)
+    def state(self):
+        return self.policy.state_dict()
 
-    def load(self, path):
-        self.policy.load_state_dict(torch.load(path))
+    def load(self, state):
+        self.policy.load_state_dict(state)

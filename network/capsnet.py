@@ -40,7 +40,11 @@ class FinalCapsule(nn.Module):
 
     def forward(self, x):
         xh = torch.matmul(self.W, x[:, :, None, :, None]).squeeze(-1)
-        b = Variable(torch.zeros(x.shape[0], self.num_caps_in, self.num_caps_out)).cuda()
+        b = Variable(torch.zeros(x.shape[0], self.num_caps_in, self.num_caps_out))
+
+        if next(self.parameters()).is_cuda:
+            b = b.cuda()
+
         xhd = xh.detach()
 
         for i in range(self.n_iters - 1):
