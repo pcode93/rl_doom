@@ -39,7 +39,7 @@ def encode_actions(game, actions):
 
 
 def all_actions(game):
-    return [list(action) for action in itertools.product([0, 1], repeat=game.get_available_buttons_size())]
+    return [list(action) for action in itertools.product([0, 1], repeat=game.get_available_buttons_size())][1:]
 
 
 def preprocess_frame(frame, dim):

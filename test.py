@@ -25,12 +25,12 @@ def save_recording(ims, name):
 def test():
     parser = argparse.ArgumentParser(description='Test an agent in the ViZDoom environment.')
     parser.add_argument('agent_path', help='path to the agent checkpoint')
-    parser.add_argument('--show_game', dest='show_game', default=True, action='store_true',
+    parser.add_argument('--show_game', dest='show_game', default=False, action='store_true',
                         help='whether to show the game while agent is playing')
     parser.add_argument('--record', dest='record', default=False, action='store_true',
                         help='whether to record the agent playing')
     parser.add_argument('--output_path', dest='output_path', help='output path for the replay')
-    parser.add_argument('--cuda', dest='cuda', default=True, action='store_true', help='whether to use cuda')
+    parser.add_argument('--cuda', dest='cuda', default=False, action='store_true', help='whether to use cuda')
     parser.add_argument('--n_games', dest='n_games', default=1, type=int, help='number of games to play')
 
     args = parser.parse_args()

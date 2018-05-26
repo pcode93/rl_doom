@@ -24,5 +24,5 @@ class ReplayMemory:
         self.t += 1
 
     def sample(self, size):
-        idx = np.random.randint(0, self.size, size)
+        idx = np.random.randint(0, min(self.size, self.t), size)
         return self.states[idx], self.actions[idx], self.rewards[idx], self.terminals[idx], self.next_states[idx]

@@ -94,7 +94,7 @@ class DQNAgent:
         self.t += 1
 
     def epoch_finished(self):
-        losses = np.mean(self.epoch_losses)
+        losses = np.mean(self.epoch_losses) if self.epoch_losses else 0
         self.epoch_losses = []
 
         return losses
