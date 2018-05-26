@@ -50,3 +50,47 @@ def zero_frame(dim):
 
 def stack_frames(xs):
     return torch.from_numpy(np.vstack([np.expand_dims(np.array(x), axis=0) for x in xs]))
+
+
+def default_reward_shaping(map_name):
+    if map_name == 'defend_the_center.cfg':
+        def shape_reward(reward, state_vars, prev_state_vars):
+            if state_vars[0] < prev_state_vars[0]:
+                reward -= 0.175
+
+            if state_vars[1] < prev_state_vars[1]:
+                reward -= - 0.1
+
+            return reward
+    elif map_name == 'deathmatch.cfg':
+        def shape_reward(reward, state_vars, prev_state_vars):
+            if state_vars[0] > prev_state_vars[0]:
+                reward += 10
+
+            if state_vars[0] < prev_state_vars[0]:
+                reward -= 10
+
+            if state_vars[1] < prev_state_vars[1]:
+                reward -= 0.1 * (prev_state_vars[1] - state_vars[1])
+
+            if state_vars[1] > prev_state_vars[1]:
+                reward += 0.09 * (state_vars[1] - prev_state_vars[1])
+
+            if state_vars[2] < prev_state_vars[2]:
+                reward -= 0.05 * (prev_state_vars[2] - state_vars[2])
+
+            if state_vars[2] > prev_state_vars[2]:
+                reward += 0.04 * (state_vars[2] - prev_state_vars[2])
+
+            if state_vars[4] < prev_state_vars[4]:
+                reward -= 0.05 * (prev_state_vars[4] - state_vars[4])
+
+            if state_vars[4] > prev_state_vars[4]:
+                reward += 0.04 * state_vars[4] - prev_state_vars[4]
+
+            return reward
+    else:
+        def shape_reward(reward, *args):
+            return reward
+
+    return shape_reward

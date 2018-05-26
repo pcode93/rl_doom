@@ -32,7 +32,7 @@ class ProgressMonitor(Monitor):
             epoch_score = np.array(list(self.scores))
             self.epoch_scores.append(epoch_score)
 
-            print("\EPOCH %d\n-------" % (t - 1))
+            print("\EPOCH %d\n-------" % (t + 1))
 
             print("PARAMS:")
             for sched in epoch_params['schedules']:
@@ -51,6 +51,7 @@ class CheckpointMonitor(Monitor):
     def save(self, t, progress_params):
         path = "{0}_{1}".format(self.env_params["save_path"], t)
 
+        progress_params = {"loss": progress_params["loss"]}
         torch.save(self.env_params, path + "_env_params")
         torch.save(progress_params, path + "_progress_params")
         torch.save(self.agent.state(), path + "_agent")

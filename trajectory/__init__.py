@@ -40,7 +40,7 @@ class TrajectoryGenerator:
                 monitor.pre_epoch(epoch)
 
             for schedule in self.param_schedules:
-                schedule.step()
+                schedule.step(epoch)
 
             state_vars = self.env.get_state().game_variables
             prev_state_vars = state_vars

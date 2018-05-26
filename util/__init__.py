@@ -26,47 +26,32 @@ def rgb_frame(frame):
     return np.copy(im)
 
 
-class ParamSchedule:
-    def __init__(self, name, param_start, schedule_func):
-        self.param_start = param_start
-        self.param = param_start
-        self.func = schedule_func
-        self.name = name
-
-    def step(self):
-        self.param = self.param_start * self.func(self.param_start)
-
-
 class LRWrapper:
-    def __init__(self, lr_sched):
-        self.lr = lr_sched
-        self.name = "lr"
+    def __init__(self, optimizer, schedule):
+        self.schedule = schedule
+        self.name = self.schedule.name
+        self.lr = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda _: self.schedule.decay_val)
 
-    def step(self): self.lr.step()
+    def step(self, t):
+        self.schedule.step(t)
+        self.lr.step()
 
     @property
     def param(self): return self.lr.optimizer.param_groups[0]["lr"]
 
 
 class LinearSchedule:
-    def __init__(self, start_val, max_iters, start_at=0, min_val=0.0):
-        self._start_val = start_val
-        self._val = start_val
-        self._max_iters = max_iters
-        self._min = min_val
-        self._start = start_at
+    def __init__(self, name, init_param_val, start_val, max_iters, start_at=0, end_val=0.0):
+        self.name = name
+        self.init_param_val = init_param_val
+        self.start_val = start_val
+        self.decay_val = start_val
+        self.param = init_param_val
+        self.max_iters = max_iters
+        self.end_val = end_val
+        self.start = start_at
 
     def step(self, t):
-        if t >= self._start:
-            self._val = max(self._min, self._start_val - ((t - self._start) / self._max_iters))
-
-    def val(self, *args): return self._val
-
-
-class ComplexSchedule:
-    def __init__(self, **schedules):
-        self.schedules = schedules
-
-    def step(self, t):
-        for sched in self.schedules:
-            sched.step(t)
+        if t >= self.start:
+            self.decay_val = max(self.end_val, self.start_val - ((t - self.start) / self.max_iters))
+            self.param = self.decay_val * self.init_param_val

@@ -31,6 +31,7 @@ def test():
                         help='whether to record the agent playing')
     parser.add_argument('--output_path', dest='output_path', help='output path for the replay')
     parser.add_argument('--cuda', dest='cuda', default=True, action='store_true', help='whether to use cuda')
+    parser.add_argument('--n_games', dest='n_games', default=1, type=int, help='number of games to play')
 
     args = parser.parse_args()
     env_params, progress_params, agent_params = CheckpointMonitor.load(args.agent_path)
@@ -54,10 +55,10 @@ def test():
     agent.load(agent_params)
 
     checkpoint_monitor = CheckpointMonitor(env_params, agent)
-    generator = TrajectoryGenerator(game, 0, 0, agent, param_schedules=progress_params["schedules"],
+    generator = TrajectoryGenerator(game, 0, 0, agent, param_schedules=progress_params.get("schedules", None),
                                     monitors=[checkpoint_monitor, env_params["progress_monitor"]], **env_params["env"])
 
-    mean, std, max, min, frames = generator.test(1, args.record)
+    mean, std, max, min, frames = generator.test(args.n_games, args.record)
 
     print("Score: %1.f +/- %1.f, max: %1.f, min: %1.f" % (mean, std, max, min))
 

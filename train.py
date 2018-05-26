@@ -11,7 +11,7 @@ from network.capsnet import CapsNet
 from network.cnn import CNN
 from network.q_network import QNetwork
 from trajectory import TrajectoryGenerator
-from util import ParamSchedule, LinearSchedule, LRWrapper
+from util import LinearSchedule, LRWrapper
 
 
 def train():
@@ -47,6 +47,8 @@ def train():
                         help='target state height to resize each frame to')
     parser.add_argument('--state_rgb', dest='rgb', default=True, action='store_true',
                         help='whether to use rgb or gray frames')
+    parser.add_argument('--shape_reward', dest='shape_reward', default=True, action='store_true',
+                        help='whether to shape rewards')
 
     parser.add_argument('--ppo_n_timesteps', dest='n_timesteps', default=1024, type=int,
                         help='number of timesteps for each PPO iteration')
@@ -92,9 +94,8 @@ def train():
         policy = ActorCriticPolicy(feature_net, len(actions))
         optimizer = torch.optim.Adam(policy.parameters(), lr=args.lr)
 
-        alpha_sched = LinearSchedule(1, args.n_epochs, min_val=1.0 if not args.ppo_decay else 0.0)
-        lr_sched = LRWrapper(torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=alpha_sched.val))
-        eps_sched = ParamSchedule("eps", args.eps, alpha_sched.val)
+        eps_sched = LinearSchedule("eps", args.eps, 1, args.n_epochs, end_val=1.0 if not args.ppo_decay else 0.0)
+        lr_sched = LRWrapper(optimizer, LinearSchedule("lr", args.lr, 1, args.n_epochs, end_val=1.0 if not args.ppo_decay else 0.0))
         schedules = [lr_sched, eps_sched]
 
         agent = PPOAgent(policy, optimizer, eps_sched, cuda=args.cuda, n_timesteps=args.n_timesteps,
@@ -106,10 +107,8 @@ def train():
         optimizer = torch.optim.Adam(q.parameters(), lr=args.lr)
 
         memory = ReplayMemory(args.memory_size)
-        alpha_sched = LinearSchedule(1, args.n_epochs, min_val=args.min_eps)
-        lr_sched = torch.optim.lr_scheduler.LambdaLR(optimizer,
-                                                     lr_lambda=alpha_sched.val if args.decay_lr else (lambda _: 1))
-        eps_sched = ParamSchedule("eps", 1, alpha_sched.val)
+        eps_sched = LinearSchedule("eps", 1, 1, args.n_epochs, end_val=args.min_eps)
+        lr_sched = LRWrapper(optimizer, LinearSchedule("lr", args.lr, 1, args.n_epochs, end_val=1.0 if not args.decay_lr else 0.0))
         schedules = [lr_sched, eps_sched]
 
         agent = DQNAgent(q, tq, optimizer, memory, eps_sched, cuda=args.cuda, init_steps=args.init_size,
