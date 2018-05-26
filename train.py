@@ -3,7 +3,7 @@ import argparse
 from agent.dqn import DQNAgent
 from agent.ppo import PPOAgent
 from env import initialize_vizdoom
-from env.util import all_actions
+from env.util import all_actions, default_actions_for_map
 from experience_replay import ReplayMemory
 from monitor import ProgressMonitor, CheckpointMonitor
 from network.ac_policy import ActorCriticPolicy
@@ -81,7 +81,8 @@ def train():
     args = parser.parse_args()
 
     game = initialize_vizdoom(args.map_name)
-    actions = all_actions(game)
+    #actions = all_actions(game)
+    actions = default_actions_for_map(game, args.map_name)
 
     in_channels = args.frames_per_state * (3 if args.rgb else 1)
 

@@ -4,6 +4,8 @@ import torch
 import skimage.transform
 import numpy as np
 
+from vizdoom.vizdoom import Button
+
 
 class LazyFrames(object):
     def __init__(self, frames):
@@ -94,3 +96,14 @@ def default_reward_shaping(map_name):
             return reward
 
     return shape_reward
+
+
+def default_actions_for_map(game, map_name):
+    if map_name == 'health_gathering.cfg':
+        actions = [
+            [Button.TURN_RIGHT],
+            [Button.TURN_RIGHT, Button.MOVE_FORWARD],
+            [Button.MOVE_FORWARD]
+        ]
+
+    return encode_actions(game, actions)
