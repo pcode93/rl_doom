@@ -3,6 +3,7 @@ import argparse
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
+from agent.a2c import A2CAgent
 from agent.dqn import DQNAgent
 from agent.ppo import PPOAgent
 from env import initialize_vizdoom
@@ -48,6 +49,9 @@ def test():
     if env_params["agent"]["alg"] == 'ppo':
         policy = ActorCriticPolicy(feature_net, len(actions))
         agent = PPOAgent(policy, None, None, cuda=args.cuda)
+    elif env_params["agent"]["alg"] == 'a2c':
+        policy = ActorCriticPolicy(feature_net, len(actions))
+        agent = A2CAgent(policy, None, cuda=args.cuda)
     elif env_params["agent"]["alg"] == 'dqn':
         q_net = QNetwork(feature_net, len(actions))
         agent = DQNAgent(q_net, q_net, None, None, None, cuda=args.cuda)

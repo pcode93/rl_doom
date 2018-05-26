@@ -1,5 +1,7 @@
 import torch
 import argparse
+
+from agent.a2c import A2CAgent
 from agent.dqn import DQNAgent
 from agent.ppo import PPOAgent
 from env import initialize_vizdoom
@@ -32,7 +34,7 @@ def train():
     parser.add_argument('--lr_decay', dest='decay_lr', default=False, help='whether to decay learning rate each epoch')
     parser.add_argument('--gamma', dest='gamma', default=0.99, type=float, help='discount factor')
     parser.add_argument('--batch_size', dest='batch_size', default=32, type=int, help='batch size')
-    parser.add_argument('--alg', dest='alg', default='ppo', choices=['ppo', 'dqn'],
+    parser.add_argument('--alg', dest='alg', default='ppo', choices=['ppo', 'dqn', 'a2c'],
                         help='the algorithm the agent will use')
     parser.add_argument('--nn', dest='nn', default='deepmind_cnn', choices=['deepmind_cnn', 'capsnet'],
                         help='neural network that the agent will use as its feature network')
@@ -52,7 +54,7 @@ def train():
     parser.add_argument('--use_default_actions_for_map', dest='use_default_actions', default=False, action='store_true',
                         help='whether to use a default set of actions specified for the selected map')
 
-    parser.add_argument('--ppo_n_timesteps', dest='n_timesteps', default=1024, type=int,
+    parser.add_argument('--n_timesteps', dest='n_timesteps', default=1024, type=int,
                         help='number of timesteps for each PPO iteration')
     parser.add_argument('--ppo_lambda', dest='lam', default=0.95, type=float, help='lambda value for GAE')
     parser.add_argument('--ppo_eps', dest='eps', default=0.1, type=float, help='clipping parameter for PPO')
@@ -109,6 +111,15 @@ def train():
         agent = PPOAgent(policy, optimizer, eps_sched, cuda=args.cuda, n_timesteps=args.n_timesteps,
                          batch_size=args.batch_size, opt_epochs=args.opt_epochs, gamma=args.gamma, lam=args.lam,
                          entropy_coeff=args.ent_coeff, value_coeff=args.value_coeff)
+    elif args.alg == 'a2c':
+        policy = ActorCriticPolicy(feature_net, len(actions))
+        optimizer = torch.optim.Adam(policy.parameters(), lr=args.lr)
+
+        lr_sched = LRWrapper(optimizer, LinearSchedule("lr", args.lr, 1, args.n_epochs,
+                                                       end_val=1.0 if not args.decay_lr else 0.0))
+        schedules = [lr_sched]
+
+        agent = A2CAgent(policy, optimizer, args.cuda, args.gamma, args.n_timesteps)
     elif args.alg == 'dqn':
         q = QNetwork(feature_net, len(actions))
         tq = QNetwork(feature_net, len(actions))
