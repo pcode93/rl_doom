@@ -2,6 +2,7 @@
 Deep Reinforcement Learning in Doom  
 ![](https://github.com/pcode93/rl_doom/blob/master/readme_resources/basic.gif)  
 ![](https://github.com/pcode93/rl_doom/blob/master/readme_resources/health_gathering.gif)  
+![](https://github.com/pcode93/rl_doom/blob/master/readme_resources/defend_the_center.gif)  
 ## Implemented Agents  
 - A2C  
 - PPO + GAE  
