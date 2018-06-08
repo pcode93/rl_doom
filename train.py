@@ -54,8 +54,6 @@ def train():
     parser.add_argument('--use_default_actions_for_map', dest='use_default_actions', default=False, action='store_true',
                         help='whether to use a default set of actions specified for the selected map')
 
-    parser.add_argument('--n_timesteps', dest='n_timesteps', default=1024, type=int,
-                        help='number of timesteps for each PPO iteration')
     parser.add_argument('--ppo_lambda', dest='lam', default=0.95, type=float, help='lambda value for GAE')
     parser.add_argument('--ppo_eps', dest='eps', default=0.1, type=float, help='clipping parameter for PPO')
     parser.add_argument('--ppo_decay_params', dest='ppo_decay', default=False, action='store_true',
@@ -108,7 +106,7 @@ def train():
         lr_sched = LRWrapper(optimizer, LinearSchedule("lr", args.lr, 1, args.n_epochs, end_val=1.0 if not args.ppo_decay else 0.0))
         schedules = [lr_sched, eps_sched]
 
-        agent = PPOAgent(policy, optimizer, eps_sched, cuda=args.cuda, n_timesteps=args.n_timesteps,
+        agent = PPOAgent(policy, optimizer, eps_sched, cuda=args.cuda, n_timesteps=args.epoch_len,
                          batch_size=args.batch_size, opt_epochs=args.opt_epochs, gamma=args.gamma, lam=args.lam,
                          entropy_coeff=args.ent_coeff, value_coeff=args.value_coeff)
     elif args.alg == 'a2c':
@@ -119,7 +117,7 @@ def train():
                                                        end_val=1.0 if not args.decay_lr else 0.0))
         schedules = [lr_sched]
 
-        agent = A2CAgent(policy, optimizer, args.cuda, args.gamma, args.n_timesteps)
+        agent = A2CAgent(policy, optimizer, args.cuda, args.gamma, args.epoch_len)
     elif args.alg == 'dqn':
         q = QNetwork(feature_net, len(actions))
         tq = QNetwork(feature_net, len(actions))
@@ -159,7 +157,7 @@ def train():
     else:
         monitors = [progress_monitor]
 
-    generator = TrajectoryGenerator(game, args.n_epochs, args.epoch_len if args.alg != 'ppo' else args.n_timesteps,
+    generator = TrajectoryGenerator(game, args.n_epochs, args.epoch_len,
                                     agent, shape_reward_fn=reward_fn, monitors=monitors, param_schedules=schedules,
                                     **env_params["env"])
 
